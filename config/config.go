@@ -1,6 +1,7 @@
 package config
 
 import (
+	"avito_pvz_test/variable"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -22,7 +23,7 @@ type AuthConfig struct {
 func NewConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Println(variable.Msg_err_env)
 		return nil
 	}
 	return &Config{
