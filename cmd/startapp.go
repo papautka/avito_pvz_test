@@ -2,16 +2,29 @@ package main
 
 import (
 	"avito_pvz_test/config"
+	"avito_pvz_test/internal/server"
+	"avito_pvz_test/internal/users"
 	"avito_pvz_test/pkg/database"
-	"fmt"
+	"log"
 )
 
 func StartApp() {
-	/* Подгружаем файл config */
+	/* 1) Подгружаем файл config */
 	conf := config.NewConfig()
-	fmt.Println(conf)
 
-	/* Подключаемся к базе данных */
+	/* 2) Подключаемся к базе данных */
 	db := database.NewDb(conf)
-	fmt.Println(db)
+
+	/* 2.1) Создаем таблицу в бд если она не создана */
+	err := db.CreateTableUser()
+	if err != nil {
+		log.Fatal("Не удалось создать таблицу users:", err)
+		return
+	}
+
+	/* 3) репозиторий для User */
+	userRepository := users.NewUserRepo(db)
+
+	/*4) Запускаем сервер передавая туда репозиторий */
+	server.ServerStart(conf, userRepository)
 }
