@@ -41,7 +41,7 @@ func (db *Db) CreateTableUser() error {
 	_, err = db.MyDb.Exec(`DO $$
 	BEGIN
 		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role_enum') THEN
-			CREATE TYPE role_enum AS ENUM ('employee', 'moderator');
+			CREATE TYPE role_enum AS ENUM ('client', 'moderator');
 		END IF;
 	END$$;
 	`)

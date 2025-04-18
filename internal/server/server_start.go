@@ -12,7 +12,7 @@ func ServerStart(conf *config.Config, reps *users.UserRepo) {
 	router := http.NewServeMux()
 
 	// 2. Подключаем сторонние service
-	userServcie := users.NewUserService(reps)
+	userServcie := users.NewUserService(reps, conf)
 
 	// 3. Подключаем userHandDependency для USER
 	userHandDepend := users.UserHandlerDependency{

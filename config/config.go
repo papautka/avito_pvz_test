@@ -17,7 +17,8 @@ type DbConfig struct {
 }
 
 type AuthConfig struct {
-	AuthToken string
+	AuthTokenModerator string
+	AuthTokenClient    string
 }
 
 func NewConfig() *Config {
@@ -31,7 +32,8 @@ func NewConfig() *Config {
 			DsnDb: os.Getenv("DSN_DB"),
 		},
 		Auth: AuthConfig{
-			AuthToken: os.Getenv("SECRET"),
+			AuthTokenModerator: os.Getenv("TOKEN_MODERATOR"),
+			AuthTokenClient:    os.Getenv("TOKEN_CLIENT"),
 		},
 	}
 }
