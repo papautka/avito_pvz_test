@@ -43,6 +43,6 @@ func NewPvzHandler(router *http.ServeMux, pvz *PvzHandlerDependency) *PvzHandler
 		pvz.Config,
 	}
 
-	router.Handle("POST /pvz", midware.CheckRoleByToken(pvzHandler.CreatePVZ()))
+	router.Handle("POST /pvz", midware.CheckRoleByToken(pvzHandler.CreatePVZ(), "TOKEN_MODERATOR"))
 	return pvzHandler
 }
