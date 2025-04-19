@@ -1,7 +1,6 @@
 package req
 
 import (
-	"avito_pvz_test/internal/dto/errorDto"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,9 +10,6 @@ import (
 func HandleBody[T any](w *http.ResponseWriter, r *http.Request) (*T, error) {
 	body, err := Decode[T](r.Body)
 	if err != nil {
-		dataErr := errorDto.NewResponseError("HandleBody: Не удалось декодировать Body", err)
-		(*w).WriteHeader(http.StatusBadRequest)
-		JsonResponse(w, dataErr)
 		return nil, err
 	}
 	return body, nil

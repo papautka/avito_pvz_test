@@ -62,7 +62,10 @@ func (userHandler *UserHandler) GetTokenByRole() http.HandlerFunc {
 			log.Println("GetTokenByRole", err)
 			return
 		}
-		req.JsonResponse(&w, &tokenStr)
+		tokenFormatJson := &payload.TokenResponse{
+			Token: tokenStr,
+		}
+		req.JsonResponse(&w, tokenFormatJson)
 	}
 }
 
