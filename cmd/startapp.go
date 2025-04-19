@@ -32,5 +32,12 @@ func CreateDb(conf *config.Config) *database.Db {
 		log.Fatal("Не удалось создать таблицу users:", err)
 		return nil
 	}
+
+	/* 2.2) Создаем таблицу в бд для PVZ если она не создана */
+	err = db.CreateTablePVZ()
+	if err != nil {
+		log.Fatal("Не удалось создать таблицу users:", err)
+		return nil
+	}
 	return db
 }
