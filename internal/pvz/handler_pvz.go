@@ -3,6 +3,7 @@ package pvz
 import (
 	"avito_pvz_test/config"
 	"avito_pvz_test/internal/dto/payload"
+	"avito_pvz_test/pkg/midware"
 	"avito_pvz_test/pkg/req"
 	"log"
 	"net/http"
@@ -40,6 +41,6 @@ func NewPvzHandler(router *http.ServeMux, pvz *PvzHandlerDependency) *PvzHandler
 		pvz.Config,
 	}
 
-	router.HandleFunc("POST /pvz", pvzHandler.CreatePVZ())
+	router.Handle("POST /pvz", midware.CheckRoleByToken(pvzHandler.CreatePVZ()))
 	return pvzHandler
 }
