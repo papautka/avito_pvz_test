@@ -25,6 +25,21 @@ func (pvzHandler *PvzHandler) CreatePVZ() http.HandlerFunc {
 			log.Println("CreatePVZ: функция HandleBody вернула nil", err)
 			return
 		}
-		pvzHandler.PvzService.Register(body.Id, body.RegistrationDate, body.City)
+		pvz, err := pvzHandler.PvzService.Register(body.Id, body.RegistrationDate, body.City)
+		if err != nil {
+			log.Println("CreatePVZ:", err)
+			return
+		}
+		req.JsonResponse(&w, pvz)
 	}
+}
+
+func NewPvzHandler(router *http.ServeMux, pvz *PvzHandlerDependency) *PvzHandler {
+	pvzHandler := &PvzHandler{
+		pvz.PvzService,
+		pvz.Config,
+	}
+
+	router.HandleFunc("POST /pvz", pvzHandler.CreatePVZ())
+	return pvzHandler
 }
