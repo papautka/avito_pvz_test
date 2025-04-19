@@ -2,9 +2,11 @@ package main
 
 import (
 	"avito_pvz_test/config"
+	"avito_pvz_test/internal/pvz"
 	"avito_pvz_test/internal/server"
 	"avito_pvz_test/internal/users"
 	"avito_pvz_test/pkg/database"
+	"avito_pvz_test/pkg/repos"
 	"log"
 )
 
@@ -15,11 +17,11 @@ func StartApp() {
 	/* 2) работаем с базой данных */
 	db := CreateDb(conf)
 
-	/* 3) репозиторий для User */
-	userRepository := users.NewUserRepo(db)
+	/* 3) создаем репозитории на основе бд */
+	allRepos := CreateRepository(db)
 
 	/*4) Запускаем сервер передавая туда репозиторий */
-	server.ServerStart(conf, userRepository)
+	server.ServerStart(conf, allRepos)
 }
 
 func CreateDb(conf *config.Config) *database.Db {
@@ -40,4 +42,14 @@ func CreateDb(conf *config.Config) *database.Db {
 		return nil
 	}
 	return db
+}
+
+func CreateRepository(db *database.Db) *repos.AllRepository {
+	/* 3.1) репозиторий для User */
+	userRepository := users.NewUserRepo(db)
+
+	/* 3.2) репозиторий для PVZ */
+	pvzRepository := pvz.NewPVZRepo(db)
+
+	return repos.NewAllRepository(userRepository, pvzRepository)
 }

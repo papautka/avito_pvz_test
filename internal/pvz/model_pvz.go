@@ -11,8 +11,9 @@ type PVZ struct {
 	City             string    `json:"city"`
 }
 
-func NewPVZ(RegistrationDate time.Time, City string) *PVZ {
+func NewPVZ(Id uuid.UUID, RegistrationDate time.Time, City string) *PVZ {
 	return &PVZ{
+		ID:               Id,
 		RegistrationDate: RegistrationDate,
 		City:             City,
 	}

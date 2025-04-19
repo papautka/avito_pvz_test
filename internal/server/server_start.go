@@ -3,16 +3,17 @@ package server
 import (
 	"avito_pvz_test/config"
 	"avito_pvz_test/internal/users"
+	"avito_pvz_test/pkg/repos"
 	"net/http"
 )
 
-func ServerStart(conf *config.Config, reps *users.UserRepo) {
+func ServerStart(conf *config.Config, reps *repos.AllRepository) {
 
 	// 1. Создаем пустой router
 	router := http.NewServeMux()
 
 	// 2. Подключаем сторонние service
-	userServcie := users.NewUserService(reps, conf)
+	userServcie := users.NewUserService(reps.UserRepo, conf)
 
 	// 3. Подключаем userHandDependency для USER
 	userHandDepend := users.UserHandlerDependency{
