@@ -3,6 +3,7 @@ package server
 import (
 	"avito_pvz_test/config"
 	"avito_pvz_test/internal/pvz"
+	"avito_pvz_test/internal/receptions"
 	"avito_pvz_test/internal/users"
 	"avito_pvz_test/pkg/repos"
 	"net/http"
@@ -19,6 +20,9 @@ func ServerStart(conf *config.Config, reps *repos.AllRepository) {
 	// 2.1. Подключаем к router ручки для PVZ
 	ConnectHandlerForPvz(router, conf, reps.PvzRepo)
 
+	// 2.2 Подключаем к router ручки для Reception
+	ConnectHandlerForReception(router, conf, reps.ReceptionRepo)
+
 	// 5. Передаем server наши ручки
 	server := http.Server{
 		Addr:    ":8080",
@@ -27,6 +31,20 @@ func ServerStart(conf *config.Config, reps *repos.AllRepository) {
 
 	// 6. Запускаем server
 	server.ListenAndServe()
+}
+
+func ConnectHandlerForReception(router *http.ServeMux, conf *config.Config, reps *receptions.ReceptionRepo) {
+	// 2. Подключаем сторонние service
+	receptionService := receptions.NewReceptionService(reps, conf)
+
+	// 3. Подключаем receptionHandDependency для Reception
+	receptionHandDepend := receptions.ReceptionHandlerDependency{
+		receptionService,
+		conf,
+	}
+
+	// 4. Подключаем ручки Reception к router
+	receptions.NewReceptionHandler(router, &receptionHandDepend)
 }
 
 func ConnectHandlerForPvz(router *http.ServeMux, conf *config.Config, reps *pvz.PVZRepo) {

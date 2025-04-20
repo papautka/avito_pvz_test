@@ -2,7 +2,7 @@ package pvz
 
 import (
 	"avito_pvz_test/config"
-	"fmt"
+	"avito_pvz_test/pkg/req"
 	"github.com/google/uuid"
 	"log"
 	"time"
@@ -25,14 +25,14 @@ func (pvz *PvzService) Register(id string, registrationDate string, city string)
 	var uuidVal uuid.UUID
 	var err error
 
-	uuidVal, err = parseUUIDOrGenerate(id)
+	uuidVal, err = req.ParseUUIDOrGenerate(id)
 	if err != nil {
 		return nil, err
 	}
 
 	// обработка даты
 	var regTime time.Time
-	regTime, err = parseTimeOrNow(registrationDate)
+	regTime, err = req.ParseTimeOrNow(registrationDate)
 	if err != nil {
 		return nil, err
 	}
@@ -44,26 +44,4 @@ func (pvz *PvzService) Register(id string, registrationDate string, city string)
 		return nil, err
 	}
 	return createdPVZ, nil
-}
-
-func parseUUIDOrGenerate(id string) (uuid.UUID, error) {
-	if id == "" {
-		return uuid.New(), nil
-	}
-	parsed, err := uuid.Parse(id)
-	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("неверный формат UUID: %w", err)
-	}
-	return parsed, nil
-}
-
-func parseTimeOrNow(value string) (time.Time, error) {
-	if value == "" {
-		return time.Now(), nil
-	}
-	parsed, err := time.Parse(time.RFC3339, value)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("неверный формат даты: %w", err)
-	}
-	return parsed, nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"avito_pvz_test/config"
 	"avito_pvz_test/internal/pvz"
+	"avito_pvz_test/internal/receptions"
 	"avito_pvz_test/internal/server"
 	"avito_pvz_test/internal/users"
 	"avito_pvz_test/pkg/database"
@@ -34,11 +35,16 @@ func CreateDb(conf *config.Config) *database.Db {
 		log.Fatal("Не удалось создать таблицу users:", err)
 		return nil
 	}
-
 	/* 2.2) Создаем таблицу в бд для PVZ если она не создана */
 	err = db.CreateTablePVZ()
 	if err != nil {
-		log.Fatal("Не удалось создать таблицу users:", err)
+		log.Fatal("Не удалось создать таблицу pvz:", err)
+		return nil
+	}
+	/* 2.3) Создаем таблицу в бд для Reception(приемки) если она не создана*/
+	err = db.CreateTableReception()
+	if err != nil {
+		log.Fatal("Не удалось создать таблицу reception:", err)
 		return nil
 	}
 	return db
@@ -51,5 +57,8 @@ func CreateRepository(db *database.Db) *repos.AllRepository {
 	/* 3.2) репозиторий для PVZ */
 	pvzRepository := pvz.NewPVZRepo(db)
 
-	return repos.NewAllRepository(userRepository, pvzRepository)
+	/* 3.3) репозиторий для Reception */
+	receptionRepository := receptions.NewReceptionRepo(db)
+
+	return repos.NewAllRepository(userRepository, pvzRepository, receptionRepository)
 }
