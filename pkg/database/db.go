@@ -135,6 +135,17 @@ func (db *Db) CreateTableReception() error {
 		return err
 	}
 
+	// 4. Уникальный индекс на одну активную приёмку на pvzId
+	_, err = db.MyDb.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS only_one_active_reception_per_pvz
+		ON receptions(pvzId)
+		WHERE status = 'in_progress';
+	`)
+	if err != nil {
+		log.Fatalf("Ошибка при создании уникального индекса: %v", err)
+		return err
+	}
+
 	fmt.Println("✅ Таблица 'receptions' успешно создана")
 	return nil
 }
