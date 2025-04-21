@@ -9,12 +9,12 @@ import (
 )
 
 type UserHandlerDependency struct {
-	*UserService
+	UserService UserService
 	*config.Config
 }
 
 type UserHandler struct {
-	*UserService
+	UserService UserService
 	*config.Config
 }
 
@@ -25,7 +25,7 @@ func (userHandler *UserHandler) CreateUser() http.HandlerFunc {
 			log.Println("CreateUser: функция HandleBody вернула nil", err)
 			return
 		}
-		createdUser, err := userHandler.Register(body.Email, body.Password, body.Role)
+		createdUser, err := userHandler.UserService.Register(r.Context(), body.Email, body.Password, body.Role)
 		if err != nil {
 			log.Println("CreateUser: не удалось создать пользователя")
 			return
@@ -41,7 +41,7 @@ func (userHandler *UserHandler) AuthenticateUser() http.HandlerFunc {
 			log.Println("AuthenticateUser: функция HandleBody вернула nil", err)
 			return
 		}
-		jwtPoint, err := userHandler.Login(body.Email, body.Password)
+		jwtPoint, err := userHandler.UserService.Login(r.Context(), body.Email, body.Password)
 		if err != nil {
 			log.Println("AuthenticateUser", err)
 			return
@@ -57,7 +57,7 @@ func (userHandler *UserHandler) GetTokenByRole() http.HandlerFunc {
 			log.Println("GetTokenByRole функция HandleBody вернула nil", err)
 			return
 		}
-		tokenStr, err := userHandler.GetToken((*body).Role)
+		tokenStr, err := userHandler.UserService.GetToken((*body).Role)
 		if err != nil {
 			log.Println("GetTokenByRole", err)
 			return

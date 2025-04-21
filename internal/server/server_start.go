@@ -61,16 +61,16 @@ func ConnectHandlerForPvz(router *http.ServeMux, conf *config.Config, reps *pvz.
 	pvz.NewPvzHandler(router, &pvzHandDepend)
 }
 
-func ConnectHandlerForUser(router *http.ServeMux, conf *config.Config, reps *users.UserRepo) {
-	// 2. Подключаем сторонние service
-	userServcie := users.NewUserService(reps, conf)
+func ConnectHandlerForUser(router *http.ServeMux, conf *config.Config, repo *users.UserRepo) {
+	// 1. Инициализация сервиса пользователя
+	userService := users.NewUserService(repo, conf)
 
-	// 3. Подключаем userHandDependency для USER
-	userHandDepend := users.UserHandlerDependency{
-		userServcie,
-		conf,
+	// 2. Создание зависимостей хендлера
+	handlerDeps := &users.UserHandlerDependency{
+		UserService: userService,
+		Config:      conf,
 	}
 
-	// 4. Подключаем ручки USERS к router
-	users.NewUserHandler(router, &userHandDepend)
+	// 3. Подключение маршрутов пользователя
+	users.NewUserHandler(router, handlerDeps)
 }

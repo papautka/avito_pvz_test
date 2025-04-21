@@ -2,6 +2,7 @@ package users
 
 import (
 	"avito_pvz_test/pkg/database"
+	"context"
 	"fmt"
 	"log"
 )
@@ -20,7 +21,7 @@ func NewUserRepo(database *database.Db) *UserRepo {
 	}
 }
 
-func (repo *UserRepo) Create(user *User) (*User, error) {
+func (repo *UserRepo) CreateUser(ctx context.Context, user *User) (*User, error) {
 	query := `INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id`
 	err := repo.Database.MyDb.QueryRow(query, user.Email, user.Password, user.Role).Scan(&user.Id)
 	if err != nil {
@@ -30,7 +31,7 @@ func (repo *UserRepo) Create(user *User) (*User, error) {
 	return user, nil
 }
 
-func (repo *UserRepo) FindUserByEmailPass(email, password string) (*User, error) {
+func (repo *UserRepo) FindUserByEmailPass(ctx context.Context, email, password string) (*User, error) {
 
 	// запрос
 	query := `SELECT id, email, password, role FROM users where email = $1 and password = $2`

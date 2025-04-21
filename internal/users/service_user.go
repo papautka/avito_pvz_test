@@ -4,28 +4,27 @@ import (
 	"avito_pvz_test/config"
 	"avito_pvz_test/internal/dto/payload"
 	"avito_pvz_test/pkg/jwt"
+	"context"
 	"fmt"
 	"log"
 )
 
-type UserService struct {
-	UserRepository *UserRepo
-	Config         *config.Config
+type UsersService struct {
+	UserRepo UserRepository // Интерфейс, а не конкретная реализация
+	Config   *config.Config
 }
 
-func NewUserService(repo *UserRepo, conf *config.Config) *UserService {
-	return &UserService{
-		UserRepository: repo,
-		Config:         conf,
+func NewUserService(repo UserRepository, conf *config.Config) *UsersService {
+	return &UsersService{
+		UserRepo: repo,
+		Config:   conf,
 	}
 }
 
 // фунцкия регистарции пользователя
-func (service *UserService) Register(email, password, role string) (*User, error) {
-	// 1. TODO: реализовать валидацию email
-	// TODO : если пользователь с таким email уже есть то ошибка
+func (service *UsersService) Register(ctx context.Context, email, password, role string) (*User, error) {
 	user := NewUser(email, password, role)
-	createdUser, err := service.UserRepository.Create(user)
+	createdUser, err := service.UserRepo.CreateUser(ctx, user)
 	if err != nil {
 		log.Println("Register: не удалось создать пользователя")
 		return nil, err
@@ -34,8 +33,8 @@ func (service *UserService) Register(email, password, role string) (*User, error
 }
 
 // функция авторизации пользователя
-func (service *UserService) Login(email, password string) (*payload.TokenResponse, error) {
-	user, err := service.UserRepository.FindUserByEmailPass(email, password)
+func (service *UsersService) Login(ctx context.Context, email, password string) (*payload.TokenResponse, error) {
+	user, err := service.UserRepo.FindUserByEmailPass(ctx, email, password)
 	if err != nil {
 		log.Println("Login", err)
 		return nil, err
@@ -52,7 +51,7 @@ func (service *UserService) Login(email, password string) (*payload.TokenRespons
 }
 
 // достать токен соответсвующей роли
-func (service *UserService) GetToken(role string) (string, error) {
+func (service *UsersService) GetToken(role string) (string, error) {
 	if role != "client" && role != "moderator" {
 		return "", nil
 	}

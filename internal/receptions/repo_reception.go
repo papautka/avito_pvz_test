@@ -22,6 +22,8 @@ func NewReceptionRepo(database *database.Db) *ReceptionRepo {
 	}
 }
 
+// graceful shot down
+// interface
 // Создание Приемки (только для клиентов)
 func (repo *ReceptionRepo) Create(reception *Reception) (*Reception, error) {
 	query := `INSERT INTO receptions (date_time, pvzId, status) VALUES ($1, $2, $3) RETURNING id`
