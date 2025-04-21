@@ -2,6 +2,7 @@ package errorDto
 
 import (
 	"avito_pvz_test/pkg/req"
+	"fmt"
 	"net/http"
 )
 
@@ -37,6 +38,7 @@ func ShowResponseError(w *http.ResponseWriter, msg string, args ...interface{}) 
 				statusCode = code
 			}
 		}
+		fmt.Println("args[0]", args[0])
 	}
 	if respErr == nil {
 		respErr = NewResponseError("Internal server error")

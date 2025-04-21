@@ -38,8 +38,8 @@ func (receHandler *ReceptionHandler) CreateReceptHandler() http.HandlerFunc {
 		}
 		reception, err := receHandler.ReceptionService.CreateReception(body.PvzId)
 		if err != nil {
-			strError := "Ошибка возникла на этапе создания reception в базе данных. Тело ошибки"
-			errorDto.ShowResponseError(&w, strError, err, http.StatusBadRequest)
+			strError := "Ошибка возникла на этапе создания reception в базе данных. Тело ошибки: " + err.Error()
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
 			return
 		}
 		req.JsonResponse(&w, reception)

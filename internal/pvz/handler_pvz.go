@@ -6,6 +6,7 @@ import (
 	"avito_pvz_test/internal/dto/payload"
 	"avito_pvz_test/pkg/midware"
 	"avito_pvz_test/pkg/req"
+	"fmt"
 	"net/http"
 )
 
@@ -37,6 +38,33 @@ func (pvzHandler *PvzHandler) CreatePVZ() http.HandlerFunc {
 	}
 }
 
+func (pvzHandler *PvzHandler) CloseLastReceptionByPvz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := r.PathValue("pvzId")
+		if res == "" {
+			strError := "Ошибка: отсутствует pvzId в пути запроса"
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
+			return
+		}
+
+		uid, err := pvzHandler.PvzService.ChangeStatusReceptionByPvzOnClose(res)
+
+		if err != nil {
+			strError := fmt.Sprintf("Ошибка при закрытии последней приемки: %v", err)
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
+			return
+		}
+
+		if uid == nil {
+			strError := "Приемка не найдена или уже закрыта"
+			errorDto.ShowResponseError(&w, strError, http.StatusNotFound)
+			return
+		}
+
+		req.JsonResponse(&w, uid)
+	}
+}
+
 func NewPvzHandler(router *http.ServeMux, pvz *PvzHandlerDependency) *PvzHandler {
 	pvzHandler := &PvzHandler{
 		pvz.PvzService,
@@ -44,5 +72,6 @@ func NewPvzHandler(router *http.ServeMux, pvz *PvzHandlerDependency) *PvzHandler
 	}
 
 	router.Handle("POST /pvz", midware.CheckRoleByToken(pvzHandler.CreatePVZ(), "moderator"))
+	router.Handle("POST /pvz/{pvzId}/close_last_reception", midware.CheckRoleByToken(pvzHandler.CloseLastReceptionByPvz(), "client"))
 	return pvzHandler
 }
