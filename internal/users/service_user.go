@@ -8,24 +8,28 @@ import (
 	"log"
 )
 
-type UserService struct {
-	UserRepository *UserRepo
-	Config         *config.Config
+type ServiceUser interface {
+	Register(email, password, role string) (*User, error)
+	Login(email, password string) (*payload.TokenResponse, error)
+	GetToken(role string) (string, error)
 }
 
-func NewUserService(repo *UserRepo, conf *config.Config) *UserService {
-	return &UserService{
-		UserRepository: repo,
-		Config:         conf,
+type ServUser struct {
+	UserRepo RepositoryUser // Интерфейс, а не конкретная реализация
+	Config   *config.Config
+}
+
+func NewServUser(repo RepositoryUser, conf *config.Config) ServiceUser {
+	return &ServUser{
+		UserRepo: repo,
+		Config:   conf,
 	}
 }
 
-// фунцкия регистарции пользователя
-func (service *UserService) Register(email, password, role string) (*User, error) {
-	// 1. TODO: реализовать валидацию email
-	// TODO : если пользователь с таким email уже есть то ошибка
+// Register функция регистрации пользователя
+func (service *ServUser) Register(email, password, role string) (*User, error) {
 	user := NewUser(email, password, role)
-	createdUser, err := service.UserRepository.Create(user)
+	createdUser, err := service.UserRepo.CreateUser(user)
 	if err != nil {
 		log.Println("Register: не удалось создать пользователя")
 		return nil, err
@@ -33,9 +37,9 @@ func (service *UserService) Register(email, password, role string) (*User, error
 	return createdUser, nil
 }
 
-// функция авторизации пользователя
-func (service *UserService) Login(email, password string) (*payload.TokenResponse, error) {
-	user, err := service.UserRepository.FindUserByEmailPass(email, password)
+// Login функция авторизации пользователя
+func (service *ServUser) Login(email, password string) (*payload.TokenResponse, error) {
+	user, err := service.UserRepo.FindUserByEmailPass(email, password)
 	if err != nil {
 		log.Println("Login", err)
 		return nil, err
@@ -51,11 +55,8 @@ func (service *UserService) Login(email, password string) (*payload.TokenRespons
 	return req, nil
 }
 
-// достать токен соответсвующей роли
-func (service *UserService) GetToken(role string) (string, error) {
-	if role != "client" && role != "moderator" {
-		return "", nil
-	}
+// GetToken достать токен соответсвующее роли
+func (service *ServUser) GetToken(role string) (string, error) {
 	var secret string
 	switch role {
 	case "client":

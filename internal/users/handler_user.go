@@ -1,63 +1,39 @@
 package users
 
 import (
-	"avito_pvz_test/config"
 	"avito_pvz_test/internal/dto/payload"
 	"avito_pvz_test/pkg/req"
 	"log"
 	"net/http"
 )
 
-type UserHandlerDependency struct {
-	*UserService
-	*config.Config
+// HandlerUser Интерфейс handler
+type HandlerUser interface {
+	GetTokenByRole() http.HandlerFunc
+	CreateUser() http.HandlerFunc
+	AuthenticateUser() http.HandlerFunc
 }
 
-type UserHandler struct {
-	*UserService
-	*config.Config
+// HandUser Структура, реализующая интерфейс
+type HandUser struct {
+	userService ServiceUser
 }
 
-func (userHandler *UserHandler) CreateUser() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[payload.UserCreateRequest](&w, r)
-		if err != nil {
-			log.Println("CreateUser: функция HandleBody вернула nil", err)
-			return
-		}
-		createdUser, err := userHandler.Register(body.Email, body.Password, body.Role)
-		if err != nil {
-			log.Println("CreateUser: не удалось создать пользователя")
-			return
-		}
-		req.JsonResponse(&w, &createdUser)
+// NewHandUser Фабрика, возвращающая интерфейс
+func NewHandUser(userService ServiceUser) HandlerUser {
+	return &HandUser{
+		userService,
 	}
 }
 
-func (userHandler *UserHandler) AuthenticateUser() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[payload.UserAuthRequest](&w, r)
-		if err != nil {
-			log.Println("AuthenticateUser: функция HandleBody вернула nil", err)
-			return
-		}
-		jwtPoint, err := userHandler.Login(body.Email, body.Password)
-		if err != nil {
-			log.Println("AuthenticateUser", err)
-			return
-		}
-		req.JsonResponse(&w, &jwtPoint)
-	}
-}
-
-func (userHandler *UserHandler) GetTokenByRole() http.HandlerFunc {
+func (userHandler *HandUser) GetTokenByRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := req.HandleBody[payload.TokenRequestRole](&w, r)
 		if err != nil {
 			log.Println("GetTokenByRole функция HandleBody вернула nil", err)
 			return
 		}
-		tokenStr, err := userHandler.GetToken((*body).Role)
+		tokenStr, err := userHandler.userService.GetToken((*body).Role)
 		if err != nil {
 			log.Println("GetTokenByRole", err)
 			return
@@ -69,14 +45,34 @@ func (userHandler *UserHandler) GetTokenByRole() http.HandlerFunc {
 	}
 }
 
-func NewUserHandler(router *http.ServeMux, userHandlerDep *UserHandlerDependency) *UserHandler {
-	userHandler := &UserHandler{
-		userHandlerDep.UserService,
-		userHandlerDep.Config,
+func (userHandler *HandUser) CreateUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := req.HandleBody[payload.UserCreateRequest](&w, r)
+		if err != nil {
+			log.Println("CreateUser: функция HandleBody вернула nil", err)
+			return
+		}
+		createdUser, err := userHandler.userService.Register(body.Email, body.Password, body.Role)
+		if err != nil {
+			log.Println("CreateUser: не удалось создать пользователя")
+			return
+		}
+		req.JsonResponse(&w, &createdUser)
 	}
-	router.HandleFunc("POST /register", userHandler.CreateUser())
-	router.HandleFunc("POST /login", userHandler.AuthenticateUser())
-	router.HandleFunc("POST /dummyLogin", userHandler.GetTokenByRole())
+}
 
-	return userHandler
+func (userHandler *HandUser) AuthenticateUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := req.HandleBody[payload.UserAuthRequest](&w, r)
+		if err != nil {
+			log.Println("AuthenticateUser: функция HandleBody вернула nil", err)
+			return
+		}
+		jwtPoint, err := userHandler.userService.Login(body.Email, body.Password)
+		if err != nil {
+			log.Println("AuthenticateUser", err)
+			return
+		}
+		req.JsonResponse(&w, &jwtPoint)
+	}
 }

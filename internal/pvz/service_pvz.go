@@ -1,44 +1,47 @@
 package pvz
 
 import (
-	"avito_pvz_test/config"
+	"avito_pvz_test/pkg/req"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"time"
 )
 
-type PvzService struct {
-	PVZRepo *PVZRepo
-	Config  *config.Config
+type ServicePvz interface {
+	Register(id string, registrationDate string, city string) (*PVZ, error)
+	ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error)
 }
 
-func NewPvzService(repo *PVZRepo, config *config.Config) *PvzService {
-	return &PvzService{
-		PVZRepo: repo,
-		Config:  config,
+type ServPvz struct {
+	pvzRepoInterface RepositoryPvz
+}
+
+func NewServPvz(repo RepositoryPvz) ServicePvz {
+	return &ServPvz{
+		pvzRepoInterface: repo,
 	}
 }
 
-func (pvz *PvzService) Register(id string, registrationDate string, city string) (*PVZ, error) {
+func (pvz *ServPvz) Register(id string, registrationDate string, city string) (*PVZ, error) {
 	// проверяем UUID если не передан
 	var uuidVal uuid.UUID
 	var err error
 
-	uuidVal, err = parseUUIDOrGenerate(id)
+	uuidVal, err = req.ParseUUIDOrGenerate(id)
 	if err != nil {
 		return nil, err
 	}
 
 	// обработка даты
 	var regTime time.Time
-	regTime, err = parseTimeOrNow(registrationDate)
+	regTime, err = req.ParseTimeOrNow(registrationDate)
 	if err != nil {
 		return nil, err
 	}
 
 	newPvz := NewPVZ(uuidVal, regTime, city)
-	createdPVZ, err := pvz.PVZRepo.Create(newPvz)
+	createdPVZ, err := pvz.pvzRepoInterface.Create(newPvz)
 	if err != nil {
 		log.Printf("Error creating PVZ: %v", err)
 		return nil, err
@@ -46,24 +49,22 @@ func (pvz *PvzService) Register(id string, registrationDate string, city string)
 	return createdPVZ, nil
 }
 
-func parseUUIDOrGenerate(id string) (uuid.UUID, error) {
-	if id == "" {
-		return uuid.New(), nil
-	}
-	parsed, err := uuid.Parse(id)
-	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("неверный формат UUID: %w", err)
-	}
-	return parsed, nil
-}
+func (pvz *ServPvz) ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error) {
+	// проверяем UUID если не передан
+	var uuidVal uuid.UUID
+	var err error
 
-func parseTimeOrNow(value string) (time.Time, error) {
-	if value == "" {
-		return time.Now(), nil
-	}
-	parsed, err := time.Parse(time.RFC3339, value)
+	uuidVal, err = req.ParseUUIDPvz(id)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("неверный формат даты: %w", err)
+		return nil, fmt.Errorf("некорректное значение id")
 	}
-	return parsed, nil
+	pvzStruct, err := pvz.pvzRepoInterface.FindPVZById(uuidVal)
+	if err != nil {
+		return nil, fmt.Errorf("нет pvz c таким значением")
+	}
+	recepForPvz, err := pvz.pvzRepoInterface.UpdateStatus(pvzStruct.ID)
+	if err != nil {
+		return nil, fmt.Errorf("у данного pvzId нет приемок или она закрыта")
+	}
+	return recepForPvz, nil
 }

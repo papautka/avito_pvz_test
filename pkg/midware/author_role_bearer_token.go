@@ -17,8 +17,8 @@ func CheckRoleByToken(next http.Handler, strRole string) http.Handler {
 			return
 		}
 
-		if role != "moderator" {
-			msgErr := "Только пользователь с role moderator может создать PVZ"
+		if role != strRole {
+			msgErr := "Только пользователь с ролью: " + role + " может внести изменения"
 			errorDto.ShowResponseError(&w, msgErr, http.StatusForbidden)
 			return
 		}
@@ -36,11 +36,19 @@ func GetRoleFromToken(r *http.Request, strRole string) (string, error) {
 
 	tokenString := bearTokenAuth[7:]
 
-	j := jwt.NewJWT(os.Getenv(strRole))
+	TokenStr := ""
+	switch strRole {
+	case "client":
+		TokenStr = "TOKEN_CLIENT"
+	case "moderator":
+		TokenStr = "TOKEN_MODERATOR"
+	}
+
+	j := jwt.NewJWT(os.Getenv(TokenStr))
 	role, err := j.ParseToken(tokenString)
+
 	if err != nil {
 		return "", fmt.Errorf("невалидный токен: %w", err)
 	}
-
 	return role, nil
 }

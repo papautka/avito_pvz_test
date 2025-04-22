@@ -6,21 +6,22 @@ import (
 	"log"
 )
 
-type UserRepoDeps struct {
+type RepositoryUser interface {
+	CreateUser(user *User) (*User, error)
+	FindUserByEmailPass(email, password string) (*User, error)
+}
+
+type RepoUser struct {
 	Database *database.Db
 }
 
-type UserRepo struct {
-	Database *database.Db
-}
-
-func NewUserRepo(database *database.Db) *UserRepo {
-	return &UserRepo{
+func NewRepoUser(database *database.Db) RepositoryUser {
+	return &RepoUser{
 		Database: database,
 	}
 }
 
-func (repo *UserRepo) Create(user *User) (*User, error) {
+func (repo *RepoUser) CreateUser(user *User) (*User, error) {
 	query := `INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id`
 	err := repo.Database.MyDb.QueryRow(query, user.Email, user.Password, user.Role).Scan(&user.Id)
 	if err != nil {
@@ -30,7 +31,7 @@ func (repo *UserRepo) Create(user *User) (*User, error) {
 	return user, nil
 }
 
-func (repo *UserRepo) FindUserByEmailPass(email, password string) (*User, error) {
+func (repo *RepoUser) FindUserByEmailPass(email, password string) (*User, error) {
 
 	// запрос
 	query := `SELECT id, email, password, role FROM users where email = $1 and password = $2`

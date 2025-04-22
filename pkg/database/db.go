@@ -29,75 +29,34 @@ func NewDb(conf *config.Config) *Db {
 	}
 }
 
-func (db *Db) CreateTablePVZ() error {
-	// вкл расширение pgcrypto для генерации UUID
-	_, err := db.MyDb.Exec(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
+func CreateDb(conf *config.Config) *Db {
+	/* 2) Подключаемся к базе данных */
+	db := NewDb(conf)
+
+	/* 2.1) Создаем таблицу в бд для user если она не создана */
+	err := db.CreateTableUser()
 	if err != nil {
-		log.Fatalf("Ошибка при создании расширения pgcrypto: %v", err)
-		return err
+		log.Fatal("Не удалось создать таблицу users:", err)
+		return nil
 	}
-	// Создаем enum тип для city, если он ещё не создан
-	_, err = db.MyDb.Exec(`DO $$
-	BEGIN 
-		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'city_enum') THEN
-		   CREATE TYPE city_enum AS ENUM ('Москва','Санкт-Петербург','Казань');
-		END IF;
-	END$$;	
-	`)
+	/* 2.2) Создаем таблицу в бд для PVZ если она не создана */
+	err = db.CreateTablePVZ()
 	if err != nil {
-		log.Fatalf("Ошибка при создании типа ENUM: %v", err)
-		return err
+		log.Fatal("Не удалось создать таблицу pvz:", err)
+		return nil
 	}
-	// Создаем таблицу pvz
-	_, err = db.MyDb.Exec(`
-	CREATE TABLE IF NOT EXISTS pvz (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-		registration_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-		city city_enum NOT NULL
-	);
-	`)
+	/* 2.3) Создаем таблицу в бд для Reception(приемки) если она не создана*/
+	err = db.CreateTableReception()
 	if err != nil {
-		log.Fatalf("Ошибка при создании таблицы pvz: %v", err)
-		return err
+		log.Fatal("Не удалось создать таблицу reception:", err)
+		return nil
 	}
 
-	log.Println("✅ Таблица pvz успешно создана.")
-	return nil
-}
-
-func (db *Db) CreateTableUser() error {
-	// Включаем расширение pgcrypto для генерации UUID
-	_, err := db.MyDb.Exec(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
+	/* 2.4) Создаем таблицу в бд для Products если она не создана */
+	err = db.CreateTableProducts()
 	if err != nil {
-		log.Fatalf("Ошибка при создании расширения pgcrypto: %v", err)
-		return err
+		log.Fatal("Не удалось создать таблицу products:", err)
+		return nil
 	}
-
-	// Создаем enum тип для роли, если он еще не создан
-	_, err = db.MyDb.Exec(`DO $$
-	BEGIN
-		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role_enum') THEN
-			CREATE TYPE role_enum AS ENUM ('client', 'moderator');
-		END IF;
-	END$$;
-	`)
-	if err != nil {
-		log.Fatalf("Ошибка при создании типа ENUM: %v", err)
-		return err
-	}
-
-	// Создаем таблицу users
-	_, err = db.MyDb.Exec(`CREATE TABLE IF NOT EXISTS users (
-		id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-		email VARCHAR(255) UNIQUE NOT NULL,
-		password VARCHAR(255),
-		role role_enum NOT NULL
-	);`)
-	if err != nil {
-		log.Fatalf("Ошибка при создании таблицы: %v", err)
-		return err
-	}
-
-	fmt.Println("✅ Таблица 'users' успешно создана")
-	return nil
+	return db
 }
