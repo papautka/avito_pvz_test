@@ -1,34 +1,27 @@
 package receptions
 
 import (
-	"avito_pvz_test/config"
 	"avito_pvz_test/internal/dto/errorDto"
 	"avito_pvz_test/internal/dto/payload"
-	"avito_pvz_test/pkg/midware"
 	"avito_pvz_test/pkg/req"
 	"net/http"
 )
 
-type ReceptionHandlerDependency struct {
-	*ReceptionService
-	*config.Config
+type HandlerReception interface {
+	CreateReception() http.HandlerFunc
 }
 
-type ReceptionHandler struct {
-	*ReceptionService
-	*config.Config
+type HandReception struct {
+	serviceReception ServiceReception
 }
 
-func NewReceptionHandler(router *http.ServeMux, recep *ReceptionHandlerDependency) *ReceptionHandler {
-	recepHandler := &ReceptionHandler{
-		recep.ReceptionService,
-		recep.Config,
+func NewReceptionHandler(serviceReception ServiceReception) HandlerReception {
+	return &HandReception{
+		serviceReception: serviceReception,
 	}
-	router.Handle("POST /receptions", midware.CheckRoleByToken(recepHandler.CreateReceptHandler(), "client"))
-	return recepHandler
 }
 
-func (receHandler *ReceptionHandler) CreateReceptHandler() http.HandlerFunc {
+func (receptionHandler *HandReception) CreateReception() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := req.HandleBody[payload.ReceptionCreateRequest](&w, r)
 		if err != nil {
@@ -36,7 +29,7 @@ func (receHandler *ReceptionHandler) CreateReceptHandler() http.HandlerFunc {
 			errorDto.ShowResponseError(&w, strError, err, http.StatusBadRequest)
 			return
 		}
-		reception, err := receHandler.ReceptionService.CreateReception(body.PvzId)
+		reception, err := receptionHandler.serviceReception.CreateReception(body.PvzId)
 		if err != nil {
 			strError := "Ошибка возникла на этапе создания reception в базе данных. Тело ошибки: " + err.Error()
 			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)

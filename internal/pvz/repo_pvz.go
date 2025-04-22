@@ -6,22 +6,24 @@ import (
 	"github.com/google/uuid"
 )
 
-type PVZRepoDeps struct {
+type RepositoryPvz interface {
+	Create(pvz *PVZ) (*PVZ, error)
+	FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error)
+	UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error)
+}
+
+type RepoPVZ struct {
 	Database *database.Db
 }
 
-type PVZRepo struct {
-	Database *database.Db
-}
-
-func NewPVZRepo(database *database.Db) *PVZRepo {
-	return &PVZRepo{
+func NewRepoPVZ(database *database.Db) RepositoryPvz {
+	return &RepoPVZ{
 		Database: database,
 	}
 }
 
-// создание PVZ только для модераторов
-func (repo *PVZRepo) Create(pvz *PVZ) (*PVZ, error) {
+// Create создание PVZ только для модераторов
+func (repo *RepoPVZ) Create(pvz *PVZ) (*PVZ, error) {
 	query := `INSERT INTO pvz (id, registration_date, city) VALUES ($1, $2, $3) RETURNING id`
 	err := repo.Database.MyDb.QueryRow(query, pvz.ID, pvz.RegistrationDate, pvz.City).Scan(&pvz.ID)
 	if err != nil {
@@ -30,13 +32,13 @@ func (repo *PVZRepo) Create(pvz *PVZ) (*PVZ, error) {
 	return pvz, nil
 }
 
-// поиск PVZ по id (для ручки /receptions - создания новой приемки)
-func (repo *PVZRepo) FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error) {
+// FindPVZById поиск PVZ по id (для ручки /receptions - создания новой приемки)
+func (repo *RepoPVZ) FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error) {
 	pvz := &PVZ{}
 	query := `SELECT id, registration_date, city FROM pvz WHERE id=$1`
 	result, err := repo.Database.MyDb.Query(query, UUIDpvz)
 	if err != nil {
-		return nil, fmt.Errorf("Нет такого значения UUID в базе данных: %w", err)
+		return nil, fmt.Errorf("нет такого значения UUID в базе данных: %w", err)
 	}
 	defer result.Close()
 
@@ -50,7 +52,7 @@ func (repo *PVZRepo) FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error) {
 	return nil, fmt.Errorf("пункт выдачи с UUID %s не найден", UUIDpvz)
 }
 
-func (repo *PVZRepo) UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error) {
+func (repo *RepoPVZ) UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error) {
 	query := `
 		UPDATE receptions 
 		SET status = 'close'
@@ -76,7 +78,6 @@ func (repo *PVZRepo) UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ошибка чтения результата: %w", err)
 		}
-		fmt.Println("receptForPvz 11111:", receptForPvz, "err 11111", err)
 		return receptForPvz, nil
 	}
 

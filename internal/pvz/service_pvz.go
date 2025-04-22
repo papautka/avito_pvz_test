@@ -1,7 +1,6 @@
 package pvz
 
 import (
-	"avito_pvz_test/config"
 	"avito_pvz_test/pkg/req"
 	"fmt"
 	"github.com/google/uuid"
@@ -9,19 +8,22 @@ import (
 	"time"
 )
 
-type PvzService struct {
-	PVZRepo *PVZRepo
-	Config  *config.Config
+type ServicePvz interface {
+	Register(id string, registrationDate string, city string) (*PVZ, error)
+	ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error)
 }
 
-func NewPvzService(repo *PVZRepo, config *config.Config) *PvzService {
-	return &PvzService{
-		PVZRepo: repo,
-		Config:  config,
+type ServPvz struct {
+	pvzRepoInterface RepositoryPvz
+}
+
+func NewServPvz(repo RepositoryPvz) ServicePvz {
+	return &ServPvz{
+		pvzRepoInterface: repo,
 	}
 }
 
-func (pvz *PvzService) Register(id string, registrationDate string, city string) (*PVZ, error) {
+func (pvz *ServPvz) Register(id string, registrationDate string, city string) (*PVZ, error) {
 	// проверяем UUID если не передан
 	var uuidVal uuid.UUID
 	var err error
@@ -39,7 +41,7 @@ func (pvz *PvzService) Register(id string, registrationDate string, city string)
 	}
 
 	newPvz := NewPVZ(uuidVal, regTime, city)
-	createdPVZ, err := pvz.PVZRepo.Create(newPvz)
+	createdPVZ, err := pvz.pvzRepoInterface.Create(newPvz)
 	if err != nil {
 		log.Printf("Error creating PVZ: %v", err)
 		return nil, err
@@ -47,24 +49,22 @@ func (pvz *PvzService) Register(id string, registrationDate string, city string)
 	return createdPVZ, nil
 }
 
-func (pvz *PvzService) ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error) {
+func (pvz *ServPvz) ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error) {
 	// проверяем UUID если не передан
 	var uuidVal uuid.UUID
 	var err error
 
 	uuidVal, err = req.ParseUUIDPvz(id)
 	if err != nil {
-		return nil, fmt.Errorf("Некорректное значение id")
+		return nil, fmt.Errorf("некорректное значение id")
 	}
-	pvzStruct, err := pvz.PVZRepo.FindPVZById(uuidVal)
+	pvzStruct, err := pvz.pvzRepoInterface.FindPVZById(uuidVal)
 	if err != nil {
-		return nil, fmt.Errorf("Нет pvz c таким значением")
+		return nil, fmt.Errorf("нет pvz c таким значением")
 	}
-	fmt.Println("ID нашего PVZ", pvzStruct.ID)
-	recepForPvz, err := pvz.PVZRepo.UpdateStatus(pvzStruct.ID)
-	fmt.Println("uuidReception", recepForPvz, "err", err)
+	recepForPvz, err := pvz.pvzRepoInterface.UpdateStatus(pvzStruct.ID)
 	if err != nil {
-		return nil, fmt.Errorf("У данного pvzId: ", pvzStruct.ID, " нет приемок или она закрыта. Код ошибки: ", err)
+		return nil, fmt.Errorf("у данного pvzId нет приемок или она закрыта")
 	}
 	return recepForPvz, nil
 }
