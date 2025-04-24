@@ -37,7 +37,7 @@ func (repo *RepoRecep) Create(reception *Reception) (*Reception, error) {
 // ReturnLastReceptionOrEmpty Функция, которая проверяет есть ли вообще приемки в таблице приемка с указанным pvzID
 func (repo *RepoRecep) ReturnLastReceptionOrEmpty(UUIDPVZ uuid.UUID) (*Reception, error) {
 	// 1. Создаем пустую приемку
-	reception := NewReception(time.Now(), UUIDPVZ, "in_progress")
+	reception := NewReception(time.Now(), UUIDPVZ, "close")
 	query := `SELECT id, date_time, pvzId, status FROM receptions WHERE pvzId = $1 ORDER BY date_time DESC LIMIT 1`
 	result, err := repo.Database.MyDb.Query(query, UUIDPVZ)
 	if err != nil {

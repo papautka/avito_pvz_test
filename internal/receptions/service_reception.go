@@ -40,7 +40,6 @@ func (service *ServReception) CreateReception(pvzId string) (*Reception, error) 
 	// 5. в таблице Приемка найти последнюю приемку, привязанную к PVZ:
 	// 5.1. Если её нет создать её со статусом close
 	reception, err := service.receptionRepository.ReturnLastReceptionOrEmpty(pvzObj.ID)
-	fmt.Println(err)
 	if err != nil {
 		return nil, err
 	}

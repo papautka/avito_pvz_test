@@ -99,6 +99,10 @@ func StartApp() {
 	router.Handle("POST /pvz", midware.CheckRoleByToken(pvzHandler.CreatePVZ(), "moderator"))
 	router.Handle("POST /pvz/{pvzId}/close_last_reception", midware.CheckRoleByToken(pvzHandler.CloseLastReceptionByPvz(), "client"))
 
+	/* в работе */
+	router.HandleFunc("GET /pvz", pvzHandler.GetArrayPvz())
+	/* в работе */
+
 	/* 7.3) ручки для Reception */
 	router.Handle("POST /receptions", midware.CheckRoleByToken(receptionHandler.CreateReception(), "client"))
 

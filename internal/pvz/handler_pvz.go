@@ -11,6 +11,7 @@ import (
 type HandlerPvz interface {
 	CreatePVZ() http.HandlerFunc
 	CloseLastReceptionByPvz() http.HandlerFunc
+	GetArrayPvz() http.HandlerFunc
 }
 
 type HandPvz struct {
@@ -65,5 +66,24 @@ func (pvzHandler *HandPvz) CloseLastReceptionByPvz() http.HandlerFunc {
 		}
 
 		req.JsonResponse(&w, uid)
+	}
+}
+
+func (pvzHandler *HandPvz) GetArrayPvz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		reqQuetyParams, err := req.FilterRequest(r)
+		if err != nil {
+			strError := fmt.Sprintf("%v", err)
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
+			return
+		}
+		slicePvz, err := pvzHandler.pvzService.GetArrayPvz(reqQuetyParams)
+		fmt.Println("ERR", err)
+		if err != nil {
+			strError := fmt.Sprintf("%v", err)
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
+			return
+		}
+		req.JsonResponse(&w, slicePvz)
 	}
 }

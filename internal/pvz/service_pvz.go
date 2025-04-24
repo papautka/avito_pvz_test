@@ -11,6 +11,7 @@ import (
 type ServicePvz interface {
 	Register(id string, registrationDate string, city string) (*PVZ, error)
 	ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error)
+	GetArrayPvz(filter *req.FilterWithPagination) (*PvzListResponse, error)
 }
 
 type ServPvz struct {
@@ -67,4 +68,12 @@ func (pvz *ServPvz) ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForP
 		return nil, fmt.Errorf("у данного pvzId нет приемок или она закрыта")
 	}
 	return recepForPvz, nil
+}
+
+func (pvz *ServPvz) GetArrayPvz(filter *req.FilterWithPagination) (*PvzListResponse, error) {
+	slicePvz, err := pvz.pvzRepoInterface.GetPVZPageAndLimit(filter)
+	if err != nil {
+		return nil, err
+	}
+	return slicePvz, nil
 }

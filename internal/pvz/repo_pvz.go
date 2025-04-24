@@ -2,6 +2,7 @@ package pvz
 
 import (
 	"avito_pvz_test/pkg/database"
+	"avito_pvz_test/pkg/req"
 	"fmt"
 	"github.com/google/uuid"
 )
@@ -10,6 +11,7 @@ type RepositoryPvz interface {
 	Create(pvz *PVZ) (*PVZ, error)
 	FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error)
 	UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error)
+	GetPVZPageAndLimit(filter *req.FilterWithPagination) (*PvzListResponse, error)
 }
 
 type RepoPVZ struct {
@@ -83,4 +85,73 @@ func (repo *RepoPVZ) UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error) {
 
 	// Если rows.Next() не сработал, значит, RETURNING ничего не вернуло (не было подходящей приемки)
 	return nil, fmt.Errorf("нет приемок, которые нужно закрывать")
+}
+
+func (repo *RepoPVZ) GetPVZPageAndLimit(filter *req.FilterWithPagination) (*PvzListResponse, error) {
+	query := `SELECT id, registration_date, city FROM pvz
+				WHERE registration_date BETWEEN $1 AND $2
+				ORDER BY registration_date desc
+				LIMIT $3 OFFSET $4`
+	rows, err := repo.Database.MyDb.Query(query, filter.StartDate, filter.EndDate, filter.Limit, filter.Offset)
+	if err != nil {
+		fmt.Println("GetPVZPageAndLimit 1 ", err)
+		return nil, err
+	}
+	defer rows.Close()
+	var pvzListResponse PvzListResponse
+	for rows.Next() {
+		curPvz := PvzResponse{}
+		err = rows.Scan(&curPvz.Pvz.ID, &curPvz.Pvz.RegistrationDate, &curPvz.Pvz.City)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка чтения результата: %w", err)
+		}
+		curPvz.ArrayReception, err = repo.findReceptionPvzId(&curPvz.Pvz.ID)
+		if err != nil {
+			return nil, err
+		}
+		pvzListResponse.ArrayPvzResponse = append(pvzListResponse.ArrayPvzResponse, curPvz)
+	}
+	return &pvzListResponse, nil
+}
+
+func (repo *RepoPVZ) findReceptionPvzId(curPvzId *uuid.UUID) ([]ReceptionResponse, error) {
+	query := `SELECT id, date_time, pvzId, status FROM receptions WHERE pvzId = $1`
+	rows, err := repo.Database.MyDb.Query(query, curPvzId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var slRecep []ReceptionResponse
+	for rows.Next() {
+		curReception := ReceptionResponse{}
+		err = rows.Scan(&curReception.Reception.ID, &curReception.Reception.DateTime, &curReception.Reception.PvzID, &curReception.Reception.Status)
+		if err != nil {
+			return nil, err
+		}
+		curReception.ArrayProduct, err = repo.findAllProductReceptionId(&curReception.Reception.ID)
+		if err != nil {
+			return nil, err
+		}
+		slRecep = append(slRecep, curReception)
+	}
+	return slRecep, nil
+}
+
+func (repo *RepoPVZ) findAllProductReceptionId(curReceptionId *uuid.UUID) ([]Product, error) {
+	query := `SELECT id, datetime, type, receptionId FROM products WHERE receptionId = $1`
+	rows, err := repo.Database.MyDb.Query(query, curReceptionId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sliceProduct []Product
+	for rows.Next() {
+		product := Product{}
+		err = rows.Scan(&product.ID, &product.DateTime, &product.Type, &product.ReceptionId)
+		if err != nil {
+			return nil, err
+		}
+		sliceProduct = append(sliceProduct, product)
+	}
+	return sliceProduct, nil
 }
