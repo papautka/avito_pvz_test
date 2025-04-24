@@ -5,6 +5,7 @@ import (
 	"avito_pvz_test/pkg/req"
 	"fmt"
 	"github.com/google/uuid"
+	"strings"
 )
 
 type RepositoryPvz interface {
@@ -94,64 +95,111 @@ func (repo *RepoPVZ) GetPVZPageAndLimit(filter *req.FilterWithPagination) (*PvzL
 				LIMIT $3 OFFSET $4`
 	rows, err := repo.Database.MyDb.Query(query, filter.StartDate, filter.EndDate, filter.Limit, filter.Offset)
 	if err != nil {
-		fmt.Println("GetPVZPageAndLimit 1 ", err)
 		return nil, err
 	}
 	defer rows.Close()
 	var pvzListResponse PvzListResponse
+	var pvzListId []uuid.UUID
 	for rows.Next() {
 		curPvz := PvzResponse{}
 		err = rows.Scan(&curPvz.Pvz.ID, &curPvz.Pvz.RegistrationDate, &curPvz.Pvz.City)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка чтения результата: %w", err)
 		}
-		curPvz.ArrayReception, err = repo.findReceptionPvzId(&curPvz.Pvz.ID)
 		if err != nil {
 			return nil, err
 		}
+		pvzListId = append(pvzListId, curPvz.Pvz.ID)
 		pvzListResponse.ArrayPvzResponse = append(pvzListResponse.ArrayPvzResponse, curPvz)
 	}
+	// присваиваем Reception соответствующим PVZ
+	receptionMap, err := repo.findReceptionsByPvzIDs(pvzListId)
+	if err != nil {
+		return nil, err
+	}
+	for index, elemPvzResponse := range pvzListResponse.ArrayPvzResponse {
+		pvzId := elemPvzResponse.Pvz.ID
+		if receptions, ok := receptionMap[pvzId]; ok {
+			pvzListResponse.ArrayPvzResponse[index].ArrayReception = receptions
+		}
+	}
+
 	return &pvzListResponse, nil
 }
 
-func (repo *RepoPVZ) findReceptionPvzId(curPvzId *uuid.UUID) ([]ReceptionResponse, error) {
-	query := `SELECT id, date_time, pvzId, status FROM receptions WHERE pvzId = $1`
-	rows, err := repo.Database.MyDb.Query(query, curPvzId)
+func (repo *RepoPVZ) findReceptionsByPvzIDs(pvzIDs []uuid.UUID) (map[uuid.UUID][]ReceptionResponse, error) {
+	if len(pvzIDs) == 0 {
+		return nil, nil
+	}
+	// генерируем $1, $2, $3, ..., $n
+	placeholders := make([]string, len(pvzIDs))
+	args := make([]interface{}, len(pvzIDs))
+	for i, id := range pvzIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	// более оптимально пишем Query запрос
+	query := fmt.Sprintf(`SELECT id, date_time, pvzId, status FROM receptions WHERE pvzId IN (%s)`,
+		strings.Join(placeholders, ","))
+
+	rows, err := repo.Database.MyDb.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var slRecep []ReceptionResponse
+
+	resultRecResponse := make(map[uuid.UUID][]ReceptionResponse, len(pvzIDs))
+	resultReceptionId := make([]uuid.UUID, 0, len(pvzIDs))
 	for rows.Next() {
-		curReception := ReceptionResponse{}
-		err = rows.Scan(&curReception.Reception.ID, &curReception.Reception.DateTime, &curReception.Reception.PvzID, &curReception.Reception.Status)
+		var r ReceptionResponse
+		err = rows.Scan(&r.Reception.ID, &r.Reception.DateTime, &r.Reception.PvzID, &r.Reception.Status)
 		if err != nil {
 			return nil, err
 		}
-		curReception.ArrayProduct, err = repo.findAllProductReceptionId(&curReception.Reception.ID)
-		if err != nil {
-			return nil, err
-		}
-		slRecep = append(slRecep, curReception)
+		resultRecResponse[r.Reception.PvzID] = append(resultRecResponse[r.Reception.PvzID], r)
+		resultReceptionId = append(resultReceptionId, r.Reception.ID)
 	}
-	return slRecep, nil
+	// Получаем продукты по receptionId
+	productValue, err := repo.findAllProductReceptionId(resultReceptionId)
+	if err != nil {
+		return nil, err
+	}
+	// присваиваем продукты соответствующим Reception
+	for _, elemReception := range resultRecResponse {
+		for i := range elemReception {
+			receptionsId := elemReception[i].Reception.ID
+			elemReception[i].ArrayProduct = productValue[receptionsId]
+		}
+	}
+	return resultRecResponse, nil
 }
 
-func (repo *RepoPVZ) findAllProductReceptionId(curReceptionId *uuid.UUID) ([]Product, error) {
-	query := `SELECT id, datetime, type, receptionId FROM products WHERE receptionId = $1`
-	rows, err := repo.Database.MyDb.Query(query, curReceptionId)
+func (repo *RepoPVZ) findAllProductReceptionId(recIds []uuid.UUID) (map[uuid.UUID]([]Product), error) {
+	if len(recIds) == 0 {
+		return nil, nil
+	}
+	// генерируем $1, $2, ..., $n
+	placeholders := make([]string, len(recIds))
+	args := make([]interface{}, len(recIds))
+	for i, id := range recIds {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`SELECT id, datetime, type, receptionId FROM products WHERE receptionid IN (%s)`, strings.Join(placeholders, ","))
+	rows, err := repo.Database.MyDb.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var sliceProduct []Product
+	resultRecResponse := make(map[uuid.UUID][]Product, len(recIds))
 	for rows.Next() {
-		product := Product{}
-		err = rows.Scan(&product.ID, &product.DateTime, &product.Type, &product.ReceptionId)
+		var p Product
+		err = rows.Scan(&p.ID, &p.DateTime, &p.Type, &p.ReceptionId)
 		if err != nil {
 			return nil, err
 		}
-		sliceProduct = append(sliceProduct, product)
+		resultRecResponse[p.ReceptionId] = append(resultRecResponse[p.ReceptionId], p)
 	}
-	return sliceProduct, nil
+	return resultRecResponse, nil
 }
