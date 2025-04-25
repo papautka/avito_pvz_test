@@ -123,7 +123,6 @@ func (repo *RepoPVZ) GetPVZPageAndLimit(filter *req.FilterWithPagination) (*PvzL
 			pvzListResponse.ArrayPvzResponse[index].ArrayReception = receptions
 		}
 	}
-
 	return &pvzListResponse, nil
 }
 
