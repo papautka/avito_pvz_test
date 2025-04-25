@@ -1,8 +1,10 @@
 package users
 
 import (
+	"avito_pvz_test/internal/dto/errorDto"
 	"avito_pvz_test/internal/dto/payload"
 	"avito_pvz_test/pkg/req"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -66,11 +68,15 @@ func (userHandler *HandUser) AuthenticateUser() http.HandlerFunc {
 		body, err := req.HandleBody[payload.UserAuthRequest](&w, r)
 		if err != nil {
 			log.Println("AuthenticateUser: функция HandleBody вернула nil", err)
+			msgError := fmt.Sprintf("%v", err)
+			errorDto.ShowResponseError(&w, msgError, http.StatusBadRequest)
 			return
 		}
 		jwtPoint, err := userHandler.userService.Login(body.Email, body.Password)
 		if err != nil {
 			log.Println("AuthenticateUser", err)
+			msgError := fmt.Sprintf("%v", err)
+			errorDto.ShowResponseError(&w, msgError, http.StatusBadRequest)
 			return
 		}
 		req.JsonResponse(&w, &jwtPoint)

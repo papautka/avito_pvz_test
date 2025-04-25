@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"avito_pvz_test/internal/products"

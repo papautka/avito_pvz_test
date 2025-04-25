@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"avito_pvz_test/config"
@@ -16,6 +16,16 @@ import (
 	"syscall"
 	"time"
 )
+
+func CreateRouter() *http.ServeMux {
+	conf := loadConfig()
+	db := loadDB(conf)
+	repo := loadRepository(db)
+	services := loadService(repo, conf)
+	hs := loadHandlers(services)
+	router := connectHandlers(hs)
+	return router
+}
 
 func StartApp() {
 	app := CreateRouter()
@@ -115,15 +125,5 @@ func connectHandlers(hs *AllHandler) *http.ServeMux {
 	router.Handle("POST /receptions", midware.CheckRoleByToken(hs.receptionHandler.CreateReception(), "client"))
 
 	router.Handle("POST /products", midware.CheckRoleByToken(hs.productHandler.Create(), "client"))
-	return router
-}
-
-func CreateRouter() *http.ServeMux {
-	conf := loadConfig()
-	db := loadDB(conf)
-	repo := loadRepository(db)
-	services := loadService(repo, conf)
-	hs := loadHandlers(services)
-	router := connectHandlers(hs)
 	return router
 }
