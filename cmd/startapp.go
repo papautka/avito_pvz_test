@@ -8,7 +8,13 @@ import (
 	"avito_pvz_test/internal/users"
 	"avito_pvz_test/pkg/database"
 	"avito_pvz_test/pkg/midware"
+	"context"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func StartApp() {
@@ -16,7 +22,31 @@ func StartApp() {
 		Addr:    ":8080",
 		Handler: CreateRouter(),
 	}
-	server.ListenAndServe()
+	// добавил graceful shutdown (зачем он нужен?)
+	// чтобы сервер не вырубался без завершения активных соединений
+
+	// канал для получения сигнала завершения
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	// запуск Сервера в отдельной горутине
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("failed to start server: %v", err)
+		}
+	}()
+
+	log.Printf("server listening at %s", server.Addr)
+	<-stop
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %s", err)
+	}
+	log.Println("Server exiting gracefully")
 }
 
 func loadConfig() *config.Config {
