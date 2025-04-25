@@ -18,9 +18,10 @@ import (
 )
 
 func StartApp() {
+	app := CreateRouter()
 	server := http.Server{
 		Addr:    ":8080",
-		Handler: CreateRouter(),
+		Handler: app,
 	}
 	// добавил graceful shutdown (зачем он нужен?)
 	// чтобы сервер не вырубался без завершения активных соединений
