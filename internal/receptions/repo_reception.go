@@ -50,6 +50,7 @@ func (repo *RepoRecep) ReturnLastReceptionOrEmpty(UUIDPVZ uuid.UUID) (*Reception
 			return nil, fmt.Errorf("ошибка чтения данных из результата: %w", err)
 		}
 	}
+	reception.PvzID = UUIDPVZ
 	return reception, nil
 }
 
