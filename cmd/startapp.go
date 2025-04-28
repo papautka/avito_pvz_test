@@ -138,6 +138,10 @@ func connectHandlers(hs *AllHandler) *http.ServeMux {
 	router.HandleFunc("GET /pvz", hs.pvzHandler.GetArrayPvz())
 	/* в работе */
 
+	/* в работе */
+	router.Handle("POST /pvz/{pvzId}/delete_last_product", midware.CheckRoleByToken(hs.pvzHandler.DeleteLastProduct(), "client"))
+	/* в работе */
+
 	router.Handle("POST /receptions", midware.CheckRoleByToken(hs.receptionHandler.CreateReception(), "client"))
 
 	router.Handle("POST /products", midware.CheckRoleByToken(hs.productHandler.Create(), "client"))

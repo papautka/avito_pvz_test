@@ -12,6 +12,7 @@ type HandlerPvz interface {
 	CreatePVZ() http.HandlerFunc
 	CloseLastReceptionByPvz() http.HandlerFunc
 	GetArrayPvz() http.HandlerFunc
+	DeleteLastProduct() http.HandlerFunc
 }
 
 type HandPvz struct {
@@ -85,5 +86,23 @@ func (pvzHandler *HandPvz) GetArrayPvz() http.HandlerFunc {
 			return
 		}
 		req.JsonResponse(&w, slicePvz)
+	}
+}
+
+func (pvzHandler *HandPvz) DeleteLastProduct() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pvzId := r.PathValue("pvzId")
+		if pvzId == "" {
+			strError := "Ошибка: отсутствует pvzId в пути запроса"
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
+			return
+		}
+		strProduct, err := pvzHandler.pvzService.DeleteProduct(pvzId)
+		if err != nil {
+			strError := fmt.Sprintf("%v", err)
+			errorDto.ShowResponseError(&w, strError, http.StatusBadRequest)
+			return
+		}
+		req.JsonResponse(&w, strProduct)
 	}
 }

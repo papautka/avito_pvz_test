@@ -12,6 +12,7 @@ type ServicePvz interface {
 	Register(id string, registrationDate string, city string) (*PVZ, error)
 	ChangeStatusReceptionByPvzOnClose(id string) (*ReceptionForPvz, error)
 	GetArrayPvz(filter *req.FilterWithPagination) (*PvzListResponse, error)
+	DeleteProduct(pvzId string) (*Product, error)
 }
 
 type ServPvz struct {
@@ -76,4 +77,19 @@ func (pvz *ServPvz) GetArrayPvz(filter *req.FilterWithPagination) (*PvzListRespo
 		return nil, err
 	}
 	return slicePvz, nil
+}
+
+func (pvz *ServPvz) DeleteProduct(pvzId string) (*Product, error) {
+	// проверяем UUID если не передан или если не корректен
+	var uuidVal uuid.UUID
+	var err error
+	uuidVal, err = req.ParseUUIDPvz(pvzId)
+	if err != nil {
+		return nil, fmt.Errorf("некорректное значение id")
+	}
+	productStruct, err := pvz.pvzRepoInterface.DeleteLastProductInOpenReception(uuidVal)
+	if err != nil {
+		return nil, err
+	}
+	return productStruct, nil
 }

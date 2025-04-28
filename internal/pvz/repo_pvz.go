@@ -11,6 +11,7 @@ import (
 type RepositoryPvz interface {
 	Create(pvz *PVZ) (*PVZ, error)
 	FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error)
+	DeleteLastProductInOpenReception(UUIDpvz uuid.UUID) (*Product, error)
 	UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error)
 	GetPVZPageAndLimit(filter *req.FilterWithPagination) (*PvzListResponse, error)
 }
@@ -201,4 +202,71 @@ func (repo *RepoPVZ) findAllProductReceptionId(recIds []uuid.UUID) (map[uuid.UUI
 		resultRecResponse[p.ReceptionId] = append(resultRecResponse[p.ReceptionId], p)
 	}
 	return resultRecResponse, nil
+}
+
+func (repo *RepoPVZ) DeleteLastProductInOpenReception(UUIDpvz uuid.UUID) (*Product, error) {
+	// Находим последнюю приемку по pvzId
+	query := `SELECT id, date_time, pvzId, status FROM receptions 
+	          WHERE pvzId = $1 ORDER BY date_time DESC LIMIT 1`
+	rows, err := repo.Database.MyDb.Query(query, UUIDpvz)
+	if err != nil {
+		return nil, fmt.Errorf("Нет %v такого значения в БД pvz: %w", UUIDpvz, err)
+	}
+	defer rows.Close()
+
+	curRec := Reception{}
+	if rows.Next() {
+		err = rows.Scan(&curRec.ID, &curRec.DateTime, &curRec.PvzID, &curRec.Status)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка чтения результата: %w", err)
+		}
+	} else {
+		return nil, fmt.Errorf("Приемка с указанным pvzId не найдена")
+	}
+
+	// Проверяем статус приемки
+	if curRec.Status == "close" {
+		return nil, fmt.Errorf("Статус текущей приемки закрыт")
+	}
+
+	// Ищем и удаляем последний продукт в открытой приемке
+	product, err := repo.findProductByReceptionId(curRec.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return product, nil
+}
+
+// Вспомогательная функция для DeleteLastProductInOpenReception
+func (repo *RepoPVZ) findProductByReceptionId(receptionId uuid.UUID) (*Product, error) {
+	query := `
+		DELETE FROM products
+		WHERE receptionId = (
+			SELECT receptionId
+			FROM products
+			WHERE receptionId = $1
+			ORDER BY datetime DESC
+			LIMIT 1
+		)
+		RETURNING id, datetime, type, receptionId;
+	`
+
+	rows, err := repo.Database.MyDb.Query(query, receptionId)
+	if err != nil {
+		return nil, fmt.Errorf("Не удалось удалить последнее значение в таблице: %w", err)
+	}
+	defer rows.Close()
+
+	p := &Product{}
+	if rows.Next() {
+		err = rows.Scan(&p.ID, &p.DateTime, &p.Type, &p.ReceptionId)
+		if err != nil {
+			return nil, fmt.Errorf("Ошибка при сканировании результата удаления: %w", err)
+		}
+	} else {
+		return nil, fmt.Errorf("Продукт не найден для удаления")
+	}
+
+	return p, nil
 }
