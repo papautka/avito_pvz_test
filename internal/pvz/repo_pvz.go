@@ -242,14 +242,14 @@ func (repo *RepoPVZ) DeleteLastProductInOpenReception(UUIDpvz uuid.UUID) (*Produ
 func (repo *RepoPVZ) findProductByReceptionId(receptionId uuid.UUID) (*Product, error) {
 	query := `
 		DELETE FROM products
-		WHERE receptionId = (
-			SELECT receptionId
+		WHERE id = (
+			SELECT id
 			FROM products
 			WHERE receptionId = $1
-			ORDER BY datetime DESC
+			ORDER BY dateTime DESC
 			LIMIT 1
 		)
-		RETURNING id, datetime, type, receptionId;
+		RETURNING id, dateTime, type, receptionId;
 	`
 
 	rows, err := repo.Database.MyDb.Query(query, receptionId)

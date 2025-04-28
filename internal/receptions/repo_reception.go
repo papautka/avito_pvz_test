@@ -5,7 +5,6 @@ import (
 	"avito_pvz_test/pkg/database"
 	"fmt"
 	"github.com/google/uuid"
-	"time"
 )
 
 type RepositoryReception interface {
@@ -37,7 +36,6 @@ func (repo *RepoRecep) Create(reception *Reception) (*Reception, error) {
 // ReturnLastReceptionOrEmpty Функция, которая проверяет есть ли вообще приемки в таблице приемка с указанным pvzID
 func (repo *RepoRecep) ReturnLastReceptionOrEmpty(UUIDPVZ uuid.UUID) (*Reception, error) {
 	// 1. Создаем пустую приемку
-	reception := NewReception(time.Now(), UUIDPVZ, "close")
 	query := `SELECT id, date_time, pvzId, status FROM receptions WHERE pvzId = $1 ORDER BY date_time DESC LIMIT 1`
 	result, err := repo.Database.MyDb.Query(query, UUIDPVZ)
 	if err != nil {
@@ -45,12 +43,12 @@ func (repo *RepoRecep) ReturnLastReceptionOrEmpty(UUIDPVZ uuid.UUID) (*Reception
 		return nil, err
 	}
 	defer result.Close()
+	reception := &Reception{}
 	if result.Next() {
 		err = result.Scan(&reception.ID, &reception.DateTime, &reception.PvzID, &reception.Status)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка чтения данных из результата: %w", err)
 		}
-		return reception, nil
 	}
 	return reception, nil
 }
