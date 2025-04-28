@@ -17,6 +17,22 @@ import (
 	"time"
 )
 
+func CreateRouterTest() *AllData {
+	conf := loadConfig()
+	db := loadDB(conf)
+	repo := loadRepository(db)
+	services := loadService(repo, conf)
+	hs := loadHandlers(services)
+	router := connectHandlers(hs)
+	return &AllData{
+		Db:       db,
+		Repo:     repo,
+		Services: services,
+		Handlers: hs,
+		Router:   router,
+	}
+}
+
 func CreateRouter() *http.ServeMux {
 	conf := loadConfig()
 	db := loadDB(conf)

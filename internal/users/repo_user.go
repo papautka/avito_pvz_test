@@ -8,6 +8,7 @@ import (
 
 type RepositoryUser interface {
 	CreateUser(user *User) (*User, error)
+	DropUser(email string) error
 	FindUserByEmailPass(email, password string) (*User, error)
 }
 
@@ -43,4 +44,13 @@ func (repo *RepoUser) FindUserByEmailPass(email, password string) (*User, error)
 		return nil, fmt.Errorf("нет пользователя с логином и паролем %s %s", email, password)
 	}
 	return &user, nil
+}
+
+func (repo *RepoUser) DropUser(email string) error {
+	query := `DELETE FROM users WHERE email = $1`
+	_, err := repo.Database.MyDb.Exec(query, email)
+	if err != nil {
+		log.Println("Drop ", err)
+	}
+	return err
 }
