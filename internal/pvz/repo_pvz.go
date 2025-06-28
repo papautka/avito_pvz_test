@@ -4,8 +4,9 @@ import (
 	"avito_pvz_test/pkg/database"
 	"avito_pvz_test/pkg/req"
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type RepositoryPvz interface {
@@ -58,16 +59,16 @@ func (repo *RepoPVZ) FindPVZById(UUIDpvz uuid.UUID) (*PVZ, error) {
 
 func (repo *RepoPVZ) UpdateStatus(UUIDpvz uuid.UUID) (*ReceptionForPvz, error) {
 	query := `
-		UPDATE receptions 
+		UPDATE reception 
 		SET status = 'close'
 		WHERE id = (
-			SELECT id FROM receptions
-			WHERE pvzId = $1
+			SELECT id FROM reception
+			WHERE pvz_id = $1
 				AND status != 'close'
 			ORDER BY date_time DESC
 			LIMIT 1
 		)
-		RETURNING id, date_time, pvzId, status
+		RETURNING id, date_time, pvz_id, status
 	`
 
 	rows, err := repo.Database.MyDb.Query(query, UUIDpvz)
@@ -107,9 +108,6 @@ func (repo *RepoPVZ) GetPVZPageAndLimit(filter *req.FilterWithPagination) (*PvzL
 		if err != nil {
 			return nil, fmt.Errorf("ошибка чтения результата: %w", err)
 		}
-		if err != nil {
-			return nil, err
-		}
 		pvzListId = append(pvzListId, curPvz.Pvz.ID)
 		pvzListResponse.ArrayPvzResponse = append(pvzListResponse.ArrayPvzResponse, curPvz)
 	}
@@ -139,7 +137,7 @@ func (repo *RepoPVZ) findReceptionsByPvzIDs(pvzIDs []uuid.UUID) (map[uuid.UUID][
 		args[i] = id
 	}
 	// более оптимально пишем Query запрос
-	query := fmt.Sprintf(`SELECT id, date_time, pvzId, status FROM receptions WHERE pvzId IN (%s)`,
+	query := fmt.Sprintf(`SELECT id, date_time, pvz_id, status FROM reception WHERE pvz_id IN (%s)`,
 		strings.Join(placeholders, ","))
 
 	rows, err := repo.Database.MyDb.Query(query, args...)
@@ -159,7 +157,7 @@ func (repo *RepoPVZ) findReceptionsByPvzIDs(pvzIDs []uuid.UUID) (map[uuid.UUID][
 		resultRecResponse[r.Reception.PvzID] = append(resultRecResponse[r.Reception.PvzID], r)
 		resultReceptionId = append(resultReceptionId, r.Reception.ID)
 	}
-	// Получаем продукты по receptionId
+	// Получаем продукты по reception_id
 	productValue, err := repo.findAllProductReceptionId(resultReceptionId)
 	if err != nil {
 		return nil, err
@@ -186,7 +184,7 @@ func (repo *RepoPVZ) findAllProductReceptionId(recIds []uuid.UUID) (map[uuid.UUI
 		args[i] = id
 	}
 
-	query := fmt.Sprintf(`SELECT id, datetime, type, receptionId FROM products WHERE receptionid IN (%s)`, strings.Join(placeholders, ","))
+	query := fmt.Sprintf(`SELECT id, date_time, type, reception_id FROM products WHERE reception_id IN (%s)`, strings.Join(placeholders, ","))
 	rows, err := repo.Database.MyDb.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -205,9 +203,9 @@ func (repo *RepoPVZ) findAllProductReceptionId(recIds []uuid.UUID) (map[uuid.UUI
 }
 
 func (repo *RepoPVZ) DeleteLastProductInOpenReception(UUIDpvz uuid.UUID) (*Product, error) {
-	// Находим последнюю приемку по pvzId
-	query := `SELECT id, date_time, pvzId, status FROM receptions 
-	          WHERE pvzId = $1 ORDER BY date_time DESC LIMIT 1`
+	// Находим последнюю приемку по pvz_id
+	query := `SELECT id, date_time, pvz_id, status FROM reception 
+	          WHERE pvz_id = $1 ORDER BY date_time DESC LIMIT 1`
 	rows, err := repo.Database.MyDb.Query(query, UUIDpvz)
 	if err != nil {
 		return nil, fmt.Errorf("Нет %v такого значения в БД pvz: %w", UUIDpvz, err)
@@ -221,7 +219,7 @@ func (repo *RepoPVZ) DeleteLastProductInOpenReception(UUIDpvz uuid.UUID) (*Produ
 			return nil, fmt.Errorf("ошибка чтения результата: %w", err)
 		}
 	} else {
-		return nil, fmt.Errorf("Приемка с указанным pvzId не найдена")
+		return nil, fmt.Errorf("Приемка с указанным pvz_id не найдена")
 	}
 
 	// Проверяем статус приемки
@@ -245,11 +243,11 @@ func (repo *RepoPVZ) findProductByReceptionId(receptionId uuid.UUID) (*Product, 
 		WHERE id = (
 			SELECT id
 			FROM products
-			WHERE receptionId = $1
-			ORDER BY dateTime DESC
+			WHERE reception_id = $1
+			ORDER BY date_time DESC
 			LIMIT 1
 		)
-		RETURNING id, dateTime, type, receptionId;
+		RETURNING id, date_time, type, reception_id;
 	`
 
 	rows, err := repo.Database.MyDb.Query(query, receptionId)

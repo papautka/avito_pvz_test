@@ -40,38 +40,15 @@ func CreateDb(conf *config.Config) *Db {
 	/* 2) Подключаемся к базе данных */
 	db := NewDb(conf)
 
-	/* 2.0) Инициализируем расширения и типы PostgreSQL */
-	err := db.InitExtensions()
-	if err != nil {
-		log.Fatal("Не удалось инициализировать расширения PostgreSQL:", err)
+	/* 2.0) Применяем миграции */
+	migrator := NewMigrator(conf)
+	defer migrator.Close()
+
+	if err := migrator.MigrateUp(); err != nil {
+		log.Fatal("Не удалось применить миграции:", err)
 		return nil
 	}
 
-	/* 2.1) Создаем таблицу в бд для user если она не создана */
-	err = db.CreateTableUser()
-	if err != nil {
-		log.Fatal("Не удалось создать таблицу users:", err)
-		return nil
-	}
-	/* 2.2) Создаем таблицу в бд для PVZ если она не создана */
-	err = db.CreateTablePVZ()
-	if err != nil {
-		log.Fatal("Не удалось создать таблицу pvz:", err)
-		return nil
-	}
-	/* 2.3) Создаем таблицу в бд для Reception(приемки) если она не создана*/
-	err = db.CreateTableReception()
-	if err != nil {
-		log.Fatal("Не удалось создать таблицу reception:", err)
-		return nil
-	}
-
-	/* 2.4) Создаем таблицу в бд для Products если она не создана */
-	err = db.CreateTableProducts()
-	if err != nil {
-		log.Fatal("Не удалось создать таблицу products:", err)
-		return nil
-	}
 	return db
 }
 

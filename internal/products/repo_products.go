@@ -20,7 +20,7 @@ func NewRepoProduct(database *database.Db) RepositoryProduct {
 }
 
 func (repo *RepoProduct) Create(product *Product) (*Product, error) {
-	query := `INSERT INTO products (dateTime, type, receptionId) VALUES ($1, $2, $3) RETURNING id`
+	query := `INSERT INTO products (date_time, type, reception_id) VALUES ($1, $2, $3) RETURNING id`
 	err := repo.Database.MyDb.QueryRow(query, product.DateTime, product.Type, product.ReceptionId).Scan(&product.ID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при создании товара: %w", err)
