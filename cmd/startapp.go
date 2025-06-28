@@ -44,7 +44,16 @@ func CreateRouter() *http.ServeMux {
 }
 
 func StartApp() {
-	app := CreateRouter()
+	// Загружаем конфигурацию и базу данных
+	conf := loadConfig()
+	db := loadDB(conf)
+
+	// Создаем роутер с использованием базы данных
+	repo := loadRepository(db)
+	services := loadService(repo, conf)
+	hs := loadHandlers(services)
+	app := connectHandlers(hs)
+
 	server := http.Server{
 		Addr:    ":8080",
 		Handler: app,
@@ -73,6 +82,12 @@ func StartApp() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %s", err)
 	}
+
+	// Закрываем соединение с базой данных
+	if err := db.Close(); err != nil {
+		log.Printf("Error closing database connection: %v", err)
+	}
+
 	log.Println("Server exiting gracefully")
 }
 

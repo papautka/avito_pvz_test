@@ -1,6 +1,8 @@
 package main
 
-import "avito_pvz_test/cmd"
+import (
+	"avito_pvz_test/cmd"
+)
 
 func main() {
 	cmd.StartApp()

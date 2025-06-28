@@ -27,6 +27,7 @@ func NewHandPvz(pvzService ServicePvz) HandlerPvz {
 
 func (pvzHandler *HandPvz) CreatePVZ() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		body, err := req.HandleBody[payload.PvzCreateRequest](&w, r)
 		if err != nil {
 			strError := "Ошибка возникла на этапе чтения из объекта Request. Тело ошибки"

@@ -24,11 +24,15 @@ func NewConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Error loading .env file")
-		return nil
+	}
+
+	dsn := os.Getenv("DSN_DB")
+	if dsn == "" {
+		log.Fatal("DSN_DB is not set in environment")
 	}
 	return &Config{
 		Db: DbConfig{
-			DsnDb: os.Getenv("DSN_DB"),
+			DsnDb: dsn,
 		},
 		Auth: AuthConfig{
 			AuthTokenModerator: os.Getenv("TOKEN_MODERATOR"),
